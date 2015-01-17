@@ -5,8 +5,8 @@
   "main": "dist/metricsgraphics.js",
   "scripts": {
     "build": "gulp build:js",
-    "test": "gulp test",
-    "test-ci": "./node_modules/testem/testem.js ci testem.json"
+    "test-ci": "./node_modules/testem/testem.js ci testem.json",
+    "test": "gulp test"
   },
   "repository": {
     "type": "git",
