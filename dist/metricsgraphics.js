@@ -1457,7 +1457,7 @@
                     + ((args.width - args.right - args.buffer)
                         - (args.left + args.buffer)) / 2;
             })
-            .attr('y', (args.height - args.bottom / 2).toFixed(2))
+            .attr('y', (args.height - args.bottom / 2 + args.xax_tick_length + 1.3).toFixed(2))
             .attr('dy', '.50em')
             .attr('text-anchor', 'middle')
             .text(function(d) {
@@ -1908,18 +1908,11 @@
                 .attr('class', 'mg-markers');
 
             gm.selectAll('.mg-markers')
-                .data(args.markers.filter(function(d){
-                    return (args.scales.X(d[args.x_accessor]) > args.buffer + args.left)
-                        && (args.scales.X(d[args.x_accessor]) < args.width - args.buffer - args.right);
-                }))
+                .data(args.markers.filter(inRange))
                 .enter()
                 .append('line')
-                    .attr('x1', function(d) {
-                        return args.scales.X(d[args.x_accessor]).toFixed(2);
-                    })
-                    .attr('x2', function(d) {
-                        return args.scales.X(d[args.x_accessor]).toFixed(2);
-                    })
+                    .attr('x1', xPositionFixed)
+                    .attr('x2', xPositionFixed)
                     .attr('y1', args.top)
                     .attr('y2', function() {
                         return args.height - args.bottom - args.buffer;
@@ -1927,20 +1920,18 @@
                     .attr('stroke-dasharray', '3,1');
 
             gm.selectAll('.mg-markers')
-                .data(args.markers.filter(function(d){
-                    return (args.scales.X(d[args.x_accessor]) > args.buffer + args.left)
-                        && (args.scales.X(d[args.x_accessor]) < args.width - args.buffer - args.right);
-                }))
+                .data(args.markers.filter(inRange))
                 .enter()
                 .append('text')
-                    .attr('x', function(d) {
-                        return args.scales.X(d[args.x_accessor]);
-                    })
+                    .attr('class', 'marker-text')
+                    .attr('x', xPosition)
                     .attr('y', args.top - 8)
                     .attr('text-anchor', 'middle')
                     .text(function(d) {
                         return d.label;
                     });
+
+            preventOverlap(gm.selectAll('.marker-text'));
         }
 
         if (args.baselines) {
@@ -1972,6 +1963,51 @@
                     .text(function(d) {
                         return d.label;
                     });
+        }
+
+        function preventOverlap (labels) {
+
+          var prev;
+          labels.each(function(d, i) {
+            if(i > 0) {
+              var thisbb = this.getBoundingClientRect();
+
+              if(isOverlapping(this, labels)) {
+                var node = d3.select(this), newY = +node.attr('y');
+                if (newY + 8 == args.top) {
+                  newY = args.top - 16;
+                }
+                node.attr('y', newY);
+              }
+            }
+            prev = this;
+          });
+        }
+
+        function isOverlapping(element, labels) {
+          var bbox = element.getBoundingClientRect();
+          for(var i = 0; i < labels.length; i++) {
+            var elbb = labels[0][i].getBoundingClientRect();
+            if (
+              labels[0][i] !== element &&
+              ((elbb.right > bbox.left && elbb.left > bbox.left && bbox.top === elbb.top) ||
+              (elbb.left < bbox.left && elbb.right > bbox.left && bbox.top === elbb.top))
+            ) return true;
+          }
+          return false;
+        }
+
+        function xPosition (d) {
+          return args.scales.X(d[args.x_accessor]);
+        }
+
+        function xPositionFixed (d) {
+          return xPosition(d).toFixed(2);
+        }
+
+        function inRange (d){
+          return (args.scales.X(d[args.x_accessor]) > args.buffer + args.left)
+              && (args.scales.X(d[args.x_accessor]) < args.width - args.buffer - args.right);
         }
 
         return this;
@@ -2550,7 +2586,7 @@
                             .attr('class', function(d) {
                                 if (args.linked) {
                                     var v = d[args.x_accessor];
-                                    var formatter = d3.time.format('%Y-%m-%d');
+                                    var formatter = d3.time.format(args.linked_format || '%Y-%m-%d');
 
                                     //only format when x-axis is date
                                     var id = (typeof v === 'number')
@@ -2632,7 +2668,7 @@
                             .attr('class', function(d, i) {
                                 if (args.linked) {
                                     var v = d[args.x_accessor];
-                                    var formatter = d3.time.format('%Y-%m-%d');
+                                    var formatter = d3.time.format(args.linked_format || '%Y-%m-%d');
 
                                     //only format when x-axis is date
                                     var id = (typeof v === 'number')
@@ -2756,8 +2792,13 @@
                     if (args.linked && !MG.globals.link) {
                         MG.globals.link = true;
 
+<<<<<<< HEAD
                         var v = d[args.x_accessor];
                         var formatter = d3.time.format('%Y-%m-%d');
+=======
+                    var v = d[args.x_accessor];
+                    var formatter = d3.time.format(args.linked_format || '%Y-%m-%d');
+>>>>>>> Adds dist files
 
                         //only format when y-axis is date
                         var id = (typeof v === 'number')
@@ -2897,7 +2938,7 @@
                     MG.globals.link = false;
 
                     var v = d[args.x_accessor];
-                    var formatter = d3.time.format('%Y-%m-%d');
+                    var formatter = d3.time.format(args.linked_format || '%Y-%m-%d');
 
                     //only format when y-axis is date
                     var id = (typeof v === 'number')
