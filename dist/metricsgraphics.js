@@ -77,6 +77,7 @@
             format: 'count',              // format = {count, percentage}
             inflator: 10/9,               // for setting y axis max
             linked: false,                // links together all other graphs with linked:true, so rollovers in one trigger rollovers in the others
+            linked_format: '%Y-%m-%d',    // What granularity to link on for graphs. Default is at day
             list: false,
             baselines: null,              // sets the baseline lines
             markers: null,                // sets the marker lines
@@ -1765,7 +1766,12 @@
         if (!args) { args = {}; }
         args = merge_with_defaults(args, defaults);
 
-        //this is how we're dealing with passing in a single array of data, 
+        if (d3.select(args.target).empty()) {
+            console.warn('The specified target element "' + args.target + '" could not be found in the page. The chart will not be rendered.');
+            return;
+        }
+
+        //this is how we're dealing with passing in a single array of data,
         //but with the intention of using multiple values for multilines, etc.
 
         //do we have a time_series?
@@ -1854,8 +1860,8 @@
         chart_title(args);
 
         //draw axes
-        args.use_small_class = args.height - args.top - args.bottom - args.buffer 
-                <= args.small_height_threshold && args.width - args.left-args.right - args.buffer * 2 
+        args.use_small_class = args.height - args.top - args.bottom - args.buffer
+                <= args.small_height_threshold && args.width - args.left-args.right - args.buffer * 2
                 <= args.small_width_threshold || args.small_text;
 
         //if we're updating an existing chart and we have fewer lines than
@@ -1863,7 +1869,7 @@
         //data_graphic() on the same target with 2 lines, remove the 3rd line
         if(args.data.length < $(args.target).find('svg .mg-main-line').length) {
             //now, the thing is we can't just remove, say, line3 if we have a custom
-            //line-color map, instead, see which are the lines to be removed, and delete those    
+            //line-color map, instead, see which are the lines to be removed, and delete those
             if(args.custom_line_color_map.length > 0) {
                 var array_full_series = function(len) {
                     var arr = new Array(len);
@@ -1873,7 +1879,7 @@
 
                 //get an array of lines ids to remove
                 var lines_to_remove = arrDiff(
-                    array_full_series(args.max_data_size), 
+                    array_full_series(args.max_data_size),
                     args.custom_line_color_map);
 
                 for(var i=0; i<lines_to_remove.length; i++) {
@@ -2368,9 +2374,6 @@
 
             //if it already exists, remove it
             var $existing_band = $(args.target).find('.mg-confidence-band');
-            if ($existing_band.length > 0) {
-                $existing_band.remove();
-            }
 
             if (args.show_confidence_band) {
                 confidence_area = d3.svg.area()
@@ -2402,6 +2405,7 @@
             //for building the optional legend
             var legend = '';
             var this_data;
+            var confidenceBand;
 
             for (var i = args.data.length - 1; i >= 0; i--) {
                 this_data = args.data[i];
@@ -2416,10 +2420,20 @@
 
                 //add confidence band
                 if (args.show_confidence_band) {
-                    svg.append('path')
-                        .attr('class', 'mg-confidence-band')
-                        .attr('d', confidence_area(args.data[i]))
-                        .attr('clip-path', 'url(#mg-plot-window-'+ mg_strip_punctuation(args.target)+')');
+                    if ($existing_band.length > 0) {
+                        confidenceBand = svg.select('.mg-confidence-band')
+                            .transition()
+                            .duration(function() {
+                              return (args.transition_on_update) ? 1000 : 0;
+                            });
+                    } else {
+                        confidenceBand = svg.append('path')
+                            .attr('class', 'mg-confidence-band');
+                    }
+
+                  confidenceBand
+                      .attr('d', confidence_area(args.data[i]))
+                      .attr('clip-path', 'url(#mg-plot-window-'+ mg_strip_punctuation(args.target)+')');
                 }
 
                 //add the area
@@ -2586,7 +2600,7 @@
                             .attr('class', function(d) {
                                 if (args.linked) {
                                     var v = d[args.x_accessor];
-                                    var formatter = d3.time.format(args.linked_format || '%Y-%m-%d');
+                                    var formatter = d3.time.format(args.linked_format);
 
                                     //only format when x-axis is date
                                     var id = (typeof v === 'number')
@@ -2668,7 +2682,7 @@
                             .attr('class', function(d, i) {
                                 if (args.linked) {
                                     var v = d[args.x_accessor];
-                                    var formatter = d3.time.format(args.linked_format || '%Y-%m-%d');
+                                    var formatter = d3.time.format(args.linked_format);
 
                                     //only format when x-axis is date
                                     var id = (typeof v === 'number')
@@ -2792,13 +2806,8 @@
                     if (args.linked && !MG.globals.link) {
                         MG.globals.link = true;
 
-<<<<<<< HEAD
                         var v = d[args.x_accessor];
-                        var formatter = d3.time.format('%Y-%m-%d');
-=======
-                    var v = d[args.x_accessor];
-                    var formatter = d3.time.format(args.linked_format || '%Y-%m-%d');
->>>>>>> Adds dist files
+                        var formatter = d3.time.format(args.linked_format);
 
                         //only format when y-axis is date
                         var id = (typeof v === 'number')
@@ -2938,7 +2947,7 @@
                     MG.globals.link = false;
 
                     var v = d[args.x_accessor];
-                    var formatter = d3.time.format(args.linked_format || '%Y-%m-%d');
+                    var formatter = d3.time.format(args.linked_format);
 
                     //only format when y-axis is date
                     var id = (typeof v === 'number')
